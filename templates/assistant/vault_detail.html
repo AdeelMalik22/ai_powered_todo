@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Vault Detail - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🔐 {{ vault_entry.label|default:"Credential" }}</h2>
+    <a href="{% url 'vault_list' %}" class="btn btn-secondary">Back</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Label:</label>
+            <p class="form-control-plaintext">{{ vault_entry.label|default:"(No label)" }}</p>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email:</label>
+            <p class="form-control-plaintext">{{ email }}</p>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Password:</label>
+            <div class="input-group">
+                <input type="password" class="form-control" id="passwordField" value="{{ password }}" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">Show</button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <small class="text-muted">Created: {{ vault_entry.created_at|date:"M d, Y H:i" }}</small>
+        </div>
+        <a href="{% url 'vault_delete' vault_entry.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<script>
+function togglePassword() {
+    const field = document.getElementById('passwordField');
+    field.type = field.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Credential - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<h2>{{ action }} Credential</h2>
+<hr>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" class="card p-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.label.id_for_label }}" class="form-label">Label</label>
+                {{ form.label }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                {{ form.email }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                {{ form.password }}
+            </div>
+            <button type="submit" class="btn btn-primary">{{ action }} Credential</button>
+            <a href="{% url 'vault_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

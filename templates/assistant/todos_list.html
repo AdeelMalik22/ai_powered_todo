@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Todos - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>✅ Todos</h2>
+    <a href="{% url 'todo_create' %}" class="btn btn-primary">➕ New Todo</a>
+</div>
+
+<div class="mb-3">
+    <form method="get" class="d-flex gap-2">
+        <select name="status" class="form-select w-auto">
+            <option value="">All Statuses</option>
+            {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if value == selected_status %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </form>
+</div>
+
+{% if todos %}
+    <div class="row">
+        {% for todo in todos %}
+            <div class="col-md-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">{{ todo.title }}</h5>
+                                <p class="card-text">{{ todo.description }}</p>
+                                <small class="text-muted">
+                                    Status: <span class="badge bg-info">{{ todo.get_status_display }}</span>
+                                    Created: {{ todo.created_at|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{% url 'todo_edit' todo.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                                <a href="{% url 'todo_delete' todo.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No todos found. <a href="{% url 'todo_create' %}">Create your first todo</a>
+    </div>
+{% endif %}
+{% endblock %}
+

@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+        color: #1f2937;
+    }
+
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 2rem;
+        color: #1f2937;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        border-color: #d1d5db;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card.pending .stat-number {
+        color: #fbbf24;
+    }
+
+    .stat-card.in-progress .stat-number {
+        color: #4a9eff;
+    }
+
+    .stat-card.completed .stat-number {
+        color: #10b981;
+    }
+
+    .stat-card.notes .stat-number {
+        color: #8b5cf6;
+    }
+
+    .stat-card.credentials .stat-number {
+        color: #ef4444;
+    }
+
+    .view-btn {
+        padding: 0.5rem 1rem;
+        background: #f3f4f6;
+        color: #4a9eff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .view-btn:hover {
+        background: #e5e7eb;
+        color: #3d82c4;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .content-section {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #6b7280;
+    }
+
+    .empty-state-text {
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .create-link {
+        color: #4a9eff;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .create-link:hover {
+        color: #3d82c4;
+        text-decoration: underline;
+    }
+
+    .todos-list, .notes-list, .credentials-list {
+        list-style: none;
+    }
+
+    .todo-item, .note-item, .credential-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .todo-item:last-child, .note-item:last-child, .credential-item:last-child {
+        border-bottom: none;
+    }
+
+    .item-title {
+        font-weight: 500;
+        color: #1f2937;
+    }
+
+    .item-meta {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+
+    .credential-type {
+        display: inline-block;
+        background: #fef3c7;
+        color: #78350f;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge {
+        background: #e5e7eb;
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+    }
+
+    .edit-btn {
+        padding: 0.375rem 0.75rem;
+        background: #4a9eff;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-block;
+    }
+
+    .edit-btn:hover {
+        background: #3d82c4;
+    }
+
+    .quick-actions {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .action-btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: #4a9eff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #3d82c4;
+        box-shadow: 0 4px 6px rgba(74, 158, 255, 0.2);
+    }
+
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #4b5563;
+        box-shadow: 0 4px 6px rgba(107, 114, 128, 0.2);
+    }
+
+    .btn-warning {
+        background: #fbbf24;
+        color: #78350f;
+    }
+
+    .btn-warning:hover {
+        background: #f59e0b;
+        box-shadow: 0 4px 6px rgba(251, 191, 36, 0.2);
+    }
+
+    .btn-info {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: #059669;
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+    }
+</style>
+
+<div class="dashboard-container">
+    <h2 class="page-title">📊 Dashboard</h2>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <div class="stat-label">Pending Todos</div>
+            <div class="stat-number">{{ pending_todos }}</div>
+            <a href="{% url 'todos_list' %}?status=pending" class="view-btn">View All</a>
+        </div>
+
+        <div class="stat-card in-progress">
+            <div class="stat-label">In Progress</div>
+            <div class="stat-number">{{ in_progress_todos }}</div>
+            <a href="{% url 'todos_list' %}?status=in_progress" class="view-btn">View All</a>
+        </div>
+
+        <div class="stat-card completed">
+            <div class="stat-label">Completed</div>
+            <div class="stat-number">{{ completed_todos }}</div>
+            <a href="{% url 'todos_list' %}?status=done" class="view-btn">View All</a>
+        </div>
+
+        <div class="stat-card notes">
+            <div class="stat-label">Notes</div>
+            <div class="stat-number">{{ total_notes }}</div>
+            <a href="{% url 'notes_list' %}" class="view-btn">View All</a>
+        </div>
+
+        <div class="stat-card credentials">
+            <div class="stat-label">Credentials</div>
+            <div class="stat-number">{{ total_credentials }}</div>
+            <a href="{% url 'vault_list' %}" class="view-btn">View All</a>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Recent Todos -->
+        <div class="content-section">
+            <h3 class="section-title">📝 Recent Todos</h3>
+            {% if recent_todos %}
+                <div class="todos-list">
+                    {% for todo in recent_todos %}
+                        <div class="todo-item">
+                            <div>
+                                <div class="item-title">{{ todo.title }}</div>
+                                <div class="item-meta">
+                                    Status: <span class="status-badge">{{ todo.get_status_display }}</span>
+                                </div>
+                            </div>
+                            <a href="{% url 'todo_edit' todo.pk %}" class="edit-btn">Edit</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-text">No todos yet.</div>
+                    <a href="{% url 'todo_create' %}" class="create-link">Create one</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Notes -->
+        <div class="content-section">
+            <h3 class="section-title">📌 Recent Notes</h3>
+            {% if recent_notes %}
+                <div class="notes-list">
+                    {% for note in recent_notes %}
+                        <div class="note-item">
+                            <div>
+                                <div class="item-title">{{ note.title }}</div>
+                                <div class="item-meta">{{ note.created_at|date:"M d, Y" }}</div>
+                            </div>
+                            <a href="{% url 'note_edit' note.pk %}" class="edit-btn">Edit</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-text">No notes yet.</div>
+                    <a href="{% url 'note_create' %}" class="create-link">Create one</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Credentials -->
+        <div class="content-section">
+            <h3 class="section-title">🔐 Recent Credentials</h3>
+            {% if recent_credentials %}
+                <div class="credentials-list">
+                    {% for credential in recent_credentials %}
+                        <div class="credential-item">
+                            <div>
+                                <div class="item-title">{{ credential.name }}</div>
+                                <div class="item-meta">
+                                    Type: <span class="credential-type">{{ credential.credential_type }}</span>
+                                </div>
+                            </div>
+                            <a href="{% url 'vault_detail' credential.pk %}" class="edit-btn">Edit</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-text">No credentials yet.</div>
+                    <a href="{% url 'vault_create' %}" class="create-link">Add one</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3 class="section-title">⚡ Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{% url 'todo_create' %}" class="action-btn btn-primary">➕ New Todo</a>
+            <a href="{% url 'note_create' %}" class="action-btn btn-secondary">📝 New Note</a>
+            <a href="{% url 'vault_create' %}" class="action-btn btn-warning">🔐 Add Credential</a>
+            <a href="{% url 'chat' %}" class="action-btn btn-info">💬 Chat with Assistant</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+django
+cryptography
+ollama
+langchain-community
+langchain
+psycopg2-binary
+

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Vault - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🔐 Vault</h2>
+    <a href="{% url 'vault_create' %}" class="btn btn-primary">➕ Add Credential</a>
+</div>
+
+{% if vault_entries %}
+    <div class="row">
+        {% for entry in vault_entries %}
+            <div class="col-md-12 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title">{{ entry.label|default:"Credential" }}</h5>
+                                <p class="card-text text-muted">{{ entry.email }}</p>
+                                <small class="text-muted">Created: {{ entry.created_at|date:"M d, Y" }}</small>
+                            </div>
+                            <div>
+                                <a href="{% url 'vault_detail' entry.id %}" class="btn btn-sm btn-info">View</a>
+                                <a href="{% url 'vault_delete' entry.id %}" class="btn btn-sm btn-danger">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No vault entries found. <a href="{% url 'vault_create' %}">Add your first credential</a>
+    </div>
+{% endif %}
+{% endblock %}
+

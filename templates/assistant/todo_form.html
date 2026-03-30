@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Todo - AI Todo Assistant{% endblock %}
+
+{% block content %}
+<h2>{{ action }} Todo</h2>
+<hr>
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" class="card p-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                {{ form.title }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                {{ form.description }}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                {{ form.status }}
+            </div>
+            <button type="submit" class="btn btn-primary">{{ action }} Todo</button>
+            <a href="{% url 'todos_list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
