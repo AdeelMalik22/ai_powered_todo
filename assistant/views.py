@@ -418,3 +418,394 @@ def chat_clear(request):
 
     return redirect('chat')
 
+
+# ============================================================================
+# MCP (Model Context Protocol) API Endpoints - Integrated with Django
+# ============================================================================
+
+import json
+from datetime import datetime, timedelta
+
+
+@csrf_exempt
+def mcp_health(request):
+    """MCP Health check endpoint"""
+    return JsonResponse({
+        "status": "ok",
+        "message": "MCP Server is running",
+        "timestamp": datetime.now().isoformat()
+    })
+
+
+@csrf_exempt
+def mcp_resources_list(request):
+    """List all available MCP resources"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    resources = [
+        {
+            "uri": "todo://pending",
+            "name": "Pending Todos",
+            "description": "All pending todos for the user",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "todo://in_progress",
+            "name": "In Progress Todos",
+            "description": "All in-progress todos",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "todo://completed",
+            "name": "Completed Todos",
+            "description": "All completed todos",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "todo://all",
+            "name": "All Todos",
+            "description": "All todos for the user",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "note://all",
+            "name": "All Notes",
+            "description": "All notes for the user",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "vault://summary",
+            "name": "Vault Summary",
+            "description": "Summary of saved credentials (names and types only)",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "vault://all",
+            "name": "All Vault Entries",
+            "description": "All credential entries in the vault",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "dashboard://summary",
+            "name": "Dashboard Summary",
+            "description": "Overview of todos, notes, and credentials",
+            "mimeType": "text/plain"
+        },
+    ]
+
+    return JsonResponse({
+        "result": {
+            "resources": resources
+        }
+    })
+
+
+@csrf_exempt
+def mcp_resources_read(request):
+    """Read a specific resource"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    try:
+        data = json.loads(request.body)
+        uri = data.get("params", {}).get("uri")
+
+        # Get user from session or request
+        user = request.user if request.user.is_authenticated else None
+
+        if not user:
+            return JsonResponse({
+                "result": {
+                    "contents": [{"text": "Error: User not authenticated"}]
+                }
+            }, status=401)
+
+        content = _fetch_resource_data(uri, user)
+
+        return JsonResponse({
+            "result": {
+                "contents": [{"text": content}]
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            "result": {
+                "contents": [{"text": f"Error reading resource: {str(e)}"}]
+            }
+        }, status=400)
+
+
+@csrf_exempt
+def mcp_tools_list(request):
+    """List all available MCP tools"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    tools = [
+        {
+            "name": "create_todo",
+            "description": "Create a new todo item",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Todo title"},
+                    "priority": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "description": "Priority level"
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "description": "Due date in YYYY-MM-DD format"
+                    }
+                },
+                "required": ["title"]
+            }
+        },
+        {
+            "name": "update_todo",
+            "description": "Update an existing todo item",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "todo_id": {"type": "integer", "description": "Todo ID"},
+                    "title": {"type": "string", "description": "New title"},
+                    "status": {
+                        "type": "string",
+                        "enum": ["pending", "in_progress", "done"],
+                        "description": "New status"
+                    }
+                },
+                "required": ["todo_id"]
+            }
+        },
+        {
+            "name": "create_note",
+            "description": "Create a new note",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Note title"},
+                    "content": {"type": "string", "description": "Note content"}
+                },
+                "required": ["title", "content"]
+            }
+        },
+        {
+            "name": "search_notes",
+            "description": "Search notes by keyword",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search query"}
+                },
+                "required": ["query"]
+            }
+        }
+    ]
+
+    return JsonResponse({
+        "result": {
+            "tools": tools
+        }
+    })
+
+
+@csrf_exempt
+def mcp_tools_call(request):
+    """Execute a MCP tool"""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST method required"}, status=405)
+    try:
+        data = json.loads(request.body)
+        tool_name = data.get("params", {}).get("name")
+        arguments = data.get("params", {}).get("arguments", {})
+
+        # Get user from session or request
+        user = request.user if request.user.is_authenticated else None
+
+        if not user:
+            return JsonResponse({
+                "result": {
+                    "text": "Error: User not authenticated"
+                }
+            }, status=401)
+
+        result = _execute_tool(tool_name, arguments, user)
+
+        return JsonResponse({
+            "result": {
+                "text": result
+            }
+        })
+    except Exception as e:
+        return JsonResponse({
+            "result": {
+                "text": f"Error executing tool: {str(e)}"
+            }
+        }, status=400)
+
+
+# ============================================================================
+# Helper Functions for MCP Resource/Tool Execution
+# ============================================================================
+
+def _fetch_resource_data(uri, user):
+    """Fetch resource data based on URI"""
+    try:
+        if uri == "todo://pending":
+            todos = Todo.objects.filter(user=user, status='pending')
+            if not todos:
+                return "No pending todos."
+            content = "Pending Todos:\n"
+            for todo in todos:
+                content += f"- [{todo.id}] {todo.title} (Priority: {todo.priority})\n"
+            return content
+
+        elif uri == "todo://in_progress":
+            todos = Todo.objects.filter(user=user, status='in_progress')
+            if not todos:
+                return "No in-progress todos."
+            content = "In Progress Todos:\n"
+            for todo in todos:
+                content += f"- [{todo.id}] {todo.title}\n"
+            return content
+
+        elif uri == "todo://completed":
+            todos = Todo.objects.filter(user=user, status='done')
+            if not todos:
+                return "No completed todos."
+            content = "Completed Todos:\n"
+            for todo in todos:
+                content += f"- [{todo.id}] {todo.title}\n"
+            return content
+
+        elif uri == "todo://all":
+            todos = Todo.objects.filter(user=user).order_by('-created_at')
+            if not todos:
+                return "No todos available."
+            content = "All Todos:\n"
+            for todo in todos:
+                content += f"- [{todo.id}] {todo.title} (Status: {todo.status}, Priority: {todo.priority})\n"
+            return content
+
+        elif uri == "note://all":
+            notes = Note.objects.filter(user=user).order_by('-created_at')
+            if not notes:
+                return "No notes available."
+            content = "All Notes:\n"
+            for note in notes:
+                content += f"\n--- {note.title} ---\n{note.content}\n"
+            return content
+
+        elif uri == "vault://summary":
+            credentials = VaultEntry.objects.filter(user=user)
+            if not credentials:
+                return "No credentials in vault."
+            content = "Vault Credentials:\n"
+            for cred in credentials:
+                content += f"- {cred.name} (Type: {cred.credential_type})\n"
+            return content
+
+        elif uri == "vault://all":
+            credentials = VaultEntry.objects.filter(user=user)
+            if not credentials:
+                return "No credentials in vault."
+            content = "All Vault Entries:\n"
+            for cred in credentials:
+                content += f"\n--- {cred.name} ---\n"
+                content += f"Type: {cred.credential_type}\n"
+                content += f"Created: {cred.created_at}\n"
+            return content
+
+        elif uri == "dashboard://summary":
+            pending = Todo.objects.filter(user=user, status='pending').count()
+            in_progress = Todo.objects.filter(user=user, status='in_progress').count()
+            completed = Todo.objects.filter(user=user, status='done').count()
+            notes_count = Note.objects.filter(user=user).count()
+            credentials_count = VaultEntry.objects.filter(user=user).count()
+
+            content = f"""Dashboard Summary:
+- Pending Todos: {pending}
+- In Progress: {in_progress}
+- Completed: {completed}
+- Total Notes: {notes_count}
+- Saved Credentials: {credentials_count}
+"""
+            return content
+
+        else:
+            return f"Unknown resource: {uri}"
+
+    except Exception as e:
+        return f"Error reading resource: {str(e)}"
+
+
+def _execute_tool(tool_name, arguments, user):
+    """Execute a tool and return result"""
+    try:
+        encryption_service = get_encryption_service()
+
+        if tool_name == "create_todo":
+            title = arguments.get("title")
+            priority = arguments.get("priority", "medium")
+            due_date = arguments.get("due_date")
+
+            todo = Todo.objects.create(
+                user=user,
+                title=title,
+                priority=priority,
+                due_date=due_date,
+                status='pending'
+            )
+            return f"✅ Todo created: '{title}' (ID: {todo.id})"
+
+        elif tool_name == "update_todo":
+            todo_id = arguments.get("todo_id")
+            title = arguments.get("title")
+            status = arguments.get("status")
+
+            try:
+                todo = Todo.objects.get(id=todo_id, user=user)
+                if title:
+                    todo.title = title
+                if status:
+                    todo.status = status
+                todo.save()
+                return f"✅ Todo updated: {todo.title}"
+            except Todo.DoesNotExist:
+                return f"❌ Todo with ID {todo_id} not found"
+
+        elif tool_name == "create_note":
+            title = arguments.get("title")
+            content = arguments.get("content")
+
+            note = Note.objects.create(
+                user=user,
+                title=title,
+                content=content
+            )
+            return f"✅ Note created: '{title}' (ID: {note.id})"
+
+        elif tool_name == "search_notes":
+            query = arguments.get("query")
+            notes = Note.objects.filter(
+                user=user,
+                title__icontains=query
+            ) | Note.objects.filter(
+                user=user,
+                content__icontains=query
+            )
+
+            if not notes:
+                return f"No notes found matching '{query}'"
+
+            result = f"Found {notes.count()} note(s) for '{query}':\n"
+            for note in notes:
+                result += f"\n--- {note.title} ---\n{note.content[:200]}...\n"
+            return result
+
+        else:
+            return f"Unknown tool: {tool_name}"
+
+    except Exception as e:
+        return f"Error executing tool: {str(e)}"
+

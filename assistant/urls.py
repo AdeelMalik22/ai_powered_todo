@@ -36,5 +36,12 @@ urlpatterns = [
     path('chat/', views.chat, name='chat'),
     path('chat/api/', views.chat_api, name='chat_api'),
     path('chat/clear/', views.chat_clear, name='chat_clear'),
+
+    # MCP API Endpoints
+    path('api/health/', views.mcp_health, name='mcp_health'),
+    path('api/resources/list/', views.mcp_resources_list, name='mcp_resources_list'),
+    path('api/resources/read/', views.mcp_resources_read, name='mcp_resources_read'),
+    path('api/tools/list/', views.mcp_tools_list, name='mcp_tools_list'),
+    path('api/tools/call/', views.mcp_tools_call, name='mcp_tools_call'),
 ]
 

@@ -69,6 +69,86 @@ class DBQueryService:
             ),
         }
 
+    @staticmethod
+    def get_all_todos_detailed(user: User) -> str:
+        """Get ALL todos with full details for AI context - supports ANY question."""
+        todos = Todo.objects.filter(user=user).order_by('-created_at')
+        if not todos:
+            return "No todos found."
+
+        content = f"ALL USER TODOS ({todos.count()} total):\n\n"
+
+        # Group by status
+        for status_value, status_label in Todo.STATUS_CHOICES:
+            status_todos = todos.filter(status=status_value)
+            if status_todos:
+                content += f"{status_label.upper()} TODOS ({status_todos.count()}):\n"
+                for todo in status_todos:
+                    content += f"  [ID: {todo.id}] Title: {todo.title}\n"
+                    if todo.description:
+                        content += f"    Description: {todo.description}\n"
+                    content += f"    Priority: {todo.priority}\n"
+                    if todo.due_date:
+                        content += f"    Due Date: {todo.due_date}\n"
+                    content += f"    Created: {todo.created_at}\n\n"
+
+        return content
+
+    @staticmethod
+    def get_all_notes_detailed(user: User) -> str:
+        """Get ALL notes with full content for AI context - supports ANY question."""
+        notes = Note.objects.filter(user=user).order_by('-created_at')
+        if not notes:
+            return "No notes found."
+
+        content = f"ALL USER NOTES ({notes.count()} total):\n\n"
+
+        for note in notes:
+            content += f"[ID: {note.id}] {note.title}\n"
+            content += f"Content:\n{note.content}\n"
+            content += f"Created: {note.created_at}\n"
+            content += f"---\n\n"
+
+        return content
+
+    @staticmethod
+    def get_all_vault_detailed(user: User) -> str:
+        """Get ALL vault entries with full details (DECRYPTED!) for AI context - supports ANY question."""
+        from assistant.services.encryption_service import get_encryption_service
+
+        vault_entries = VaultEntry.objects.filter(user=user).order_by('-created_at')
+        if not vault_entries:
+            return "No vault entries found."
+
+        encryption_service = get_encryption_service()
+        content = f"ALL USER VAULT ENTRIES ({vault_entries.count()} total):\n\n"
+
+        for entry in vault_entries:
+            content += f"[ID: {entry.id}] Name: {entry.name}\n"
+            content += f"Type: {entry.credential_type}\n"
+
+            try:
+                if entry.email_encrypted:
+                    email = encryption_service.decrypt(entry.email_encrypted)
+                    content += f"Email/Username: {email}\n"
+            except Exception as e:
+                content += f"Email/Username: [Decryption Error]\n"
+
+            try:
+                if entry.password_encrypted:
+                    password = encryption_service.decrypt(entry.password_encrypted)
+                    content += f"Password/Secret: {password}\n"
+            except Exception as e:
+                content += f"Password/Secret: [Decryption Error]\n"
+
+            if entry.label:
+                content += f"Label: {entry.label}\n"
+
+            content += f"Created: {entry.created_at}\n"
+            content += f"---\n\n"
+
+        return content
+
 
 def get_db_query_service() -> DBQueryService:
     """Factory function to get DB query service instance."""
