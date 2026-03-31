@@ -4,4 +4,8 @@ ollama
 langchain-community
 langchain
 psycopg2-binary
+mcp
+httpx
+pydantic
+aiohttp
 
